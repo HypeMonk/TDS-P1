@@ -22,6 +22,11 @@ Google requires a payment method to verify your identity and prevent spam accoun
 > [!TIP]
 > **Confirming your credits:** Once setup is complete, go to `Billing -> Overview` in the left sidebar. You will see a widget displaying your **Free trial credit** (e.g., ₹28,321) and the remaining days (90 Days).
 
+---
+<img width="1347" height="562" alt="4" src="https://github.com/user-attachments/assets/c3eacfdd-3eca-46ca-bacf-f4f198608722" />
+
+---
+
 ### Crucial Payment Warnings
 
 > [!NOTE]
