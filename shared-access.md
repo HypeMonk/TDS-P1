@@ -14,7 +14,7 @@ Your group leader has provided a Google Drive link containing 2-3 different `.js
 > 2. **No Personal Storage:** Do NOT upload personal files or create random personal buckets. If the admin detects unauthorized usage, the storage for the entire project will be deleted instantly, ruining the assignment for everyone.
 > 3. **No GitHub Leaks:** DO NOT upload the JSON file to GitHub or paste its contents online. If Google detects it, the key will be permanently disabled and your group will lose access.
 
-1. Download one random `.json` file from the Drive link to your computer. (eg. key-1.json)
+1. Download one random `.json` file from the Drive link to your computer.
 2. Save it in a very simple location, for example: `C:\temp\shared-key.json` (on Windows) or `~/Downloads/shared-key.json` (on Mac/Linux).
 3. **Copy the exact file path** — you will need it for the AI Agent prompts below.
 4. **Get your Project ID:** Open the downloaded `.json` file in Notepad (or any text editor), look for the line that says `"project_id"`, and copy the value next to it (e.g., `tds-project-123456`). You will need to paste this wherever the prompt says `YOUR_PROJECT_ID`.
@@ -47,8 +47,7 @@ If it prints a version number, you are ready to proceed.
 
 ## 3. Updated Q3 Prompt (Bucket Setup)
 
-Follow complete Q3.md.. 
-Just use this prompt in Cline instead of the original one from the Q3 guide. Make sure you replace `YOUR_PROJECT_ID`, `YOUR_BUCKET_NAME`, and the path to your JSON file before running it!
+Use this prompt in Cline instead of the original one from the Q3 guide. Make sure you replace `YOUR_PROJECT_ID`, `YOUR_BUCKET_NAME`, and the path to your JSON file before running it!
 
 ```text
 You are a cloud engineer agent working in a terminal. The Google Cloud CLI (gcloud) is already installed on this machine — do not attempt to install it.
@@ -69,7 +68,7 @@ Steps:
 3. Set the active project using the Project ID above. Confirm with `gcloud config get-value project`.
 4. Enable the Cloud Storage API: `gcloud services enable storage.googleapis.com`. Confirm it's enabled.
 5. Create the bucket using the bucket name and location above: `gcloud storage buckets create gs://BUCKET_NAME --location=LOCATION`.
-6. Make the bucket publicly readable and listable by granting `roles/storage.objectViewer` and `roles/storage.legacyBucketReader` to `allUsers`.
+6. First, disable Public Access Prevention on the bucket by running `gcloud storage buckets update gs://BUCKET_NAME --no-public-access-prevention`. Then, make the bucket publicly readable and listable by granting `roles/storage.objectViewer` and `roles/storage.legacyBucketReader` to `allUsers`.
 7. Confirm everything by running `gcloud storage buckets describe` and `gcloud storage buckets list` on the bucket.
 8. Print a final summary confirming: authentication status, project set, API enabled, bucket created, public access granted, and full describe/list output.
 ```
@@ -101,7 +100,7 @@ Steps:
 4. Create the bucket: `gcloud storage buckets create gs://YOUR_BUCKET_NAME --location=asia-south1`. If it already exists, skip this step and note that.
 5. Upload the file unchanged, preserving the exact filename `eval.jsonl`:
    `gcloud storage cp "C:\YOUR\EXACT\PATH\TO\eval.jsonl" gs://YOUR_BUCKET_NAME/eval.jsonl`
-6. Make the bucket publicly readable and listable by granting `roles/storage.objectViewer` and `roles/storage.legacyBucketReader` to `allUsers`.
+6. First, disable Public Access Prevention on the bucket by running `gcloud storage buckets update gs://YOUR_BUCKET_NAME --no-public-access-prevention`. Then, make the bucket publicly readable and listable by granting `roles/storage.objectViewer` and `roles/storage.legacyBucketReader` to `allUsers`.
 7. Download the uploaded object back to a temp location and compute its SHA-256 hash, or use `gcloud storage objects describe` to check the object's stored hash/metadata. Print this clearly labeled as "UPLOADED FILE VERIFICATION".
 8. Confirm by running `gcloud storage buckets describe gs://YOUR_BUCKET_NAME` and `gcloud storage ls gs://YOUR_BUCKET_NAME`.
 9. Print a final summary: project confirmed, API enabled, bucket created/existing, file uploaded, LOCAL HASH BEFORE UPLOAD, UPLOADED FILE VERIFICATION, public access granted, and full describe/list output. Explicitly state whether the local hash and the uploaded file appear to match.
