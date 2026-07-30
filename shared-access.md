@@ -80,30 +80,120 @@ Steps:
 Similarly, use this updated prompt for Q4. Remember to start a **New Task (New Chat)** in Cline before running this, so your JSON logs don't get mixed up!
 
 ```text
-You are a cloud engineer agent working in a terminal. The Google Cloud CLI (gcloud) is already installed on this machine — do not attempt to install it.
+```text
+You are a cloud engineer operating in a terminal. Google Cloud CLI is already installed. Do not install or update it.
 
-First, detect which shell/terminal you are running in (e.g. PowerShell, cmd, bash, zsh) and use the correct command syntax for that shell throughout this task. Do not assume a shell — check first and adapt.
+Complete the task autonomously without asking questions. Use the exact values supplied below.
 
-Complete this entire task autonomously without asking me questions — make reasonable decisions yourself and keep going until done. After each major step, print a clear status line (e.g. "STEP X DONE: ...") before moving to the next step. If a command fails, print the exact error and try one reasonable fix before moving on — don't silently skip a failed step.
+VALUES
+- Project ID: "YOUR_PROJECT_ID"
+- Bucket name: "YOUR_BUCKET_NAME"
+- Location: "asia-south1"
+- Local file: "C:\YOUR\EXACT\PATH\TO\eval.jsonl"
+- Service account key: "C:\path\to\shared-key.json"
+- Object name: "eval.jsonl"
 
-Details:
-- Project ID: YOUR_PROJECT_ID
-- Bucket name: YOUR_BUCKET_NAME
-- Location: asia-south1
-- Local file to upload: C:\YOUR\EXACT\PATH\TO\eval.jsonl
-- Service Account Key Path: C:\path\to\shared-key.json
+EXECUTION RULES
+1. Detect the current shell before running cloud commands, then use that shell's syntax consistently.
+2. On Windows PowerShell, invoke `gcloud.cmd` instead of `gcloud` to avoid PowerShell treating normal gcloud stderr messages as `NativeCommandError`. Use `$LASTEXITCODE` to determine success. Use `;`, not `&&`.
+3. Run one major operation at a time. Keep commands short and readable. Do not build large PowerShell wrapper functions or one-line scripts.
+4. Do not merge stderr into stdout unless a command actually fails. On failure, print the command's exact error, try one reasonable fix once, and then stop if the retry also fails.
+5. After every successful major step, print exactly one status line in this format:
+   `STEP X DONE: <result>`
+6. Treat an operation as successful based on its exit code and a direct verification command, not by parsing informational text.
+7. Use exact-match checks. Do not use substring filters that could confuse `storage.googleapis.com` with another service.
+8. Never print the service account key contents.
+9. Do not install components, run `gcloud components update`, or run `gcloud survey`.
+10. Preserve the local file unchanged and upload it with the exact object name `eval.jsonl`.
 
-Steps:
-1. Verify gcloud is available and check auth status with `gcloud auth list`. If not authenticated, authenticate using the service account key located at the path above using the command: `gcloud auth activate-service-account --key-file="C:\path\to\shared-key.json"`. Confirm the active project is YOUR_PROJECT_ID (set it if not already).
-2. Compute the SHA-256 hash of the local file BEFORE upload, using the correct command for this shell (e.g. `Get-FileHash` in PowerShell, `sha256sum` in bash). Print this hash clearly labeled as "LOCAL HASH BEFORE UPLOAD".
-3. Ensure the Cloud Storage API is enabled: `gcloud services enable storage.googleapis.com`.
-4. Create the bucket: `gcloud storage buckets create gs://YOUR_BUCKET_NAME --location=asia-south1`. If it already exists, skip this step and note that.
-5. Upload the file unchanged, preserving the exact filename `eval.jsonl`:
+STEPS
+
+1. Detect and print the shell name. Verify the CLI:
+   - PowerShell: `gcloud.cmd --version`
+   - Other shells: `gcloud --version`
+   Print `STEP 1 DONE` only if the command exits successfully.
+
+2. Validate that the service account key file and local upload file exist. If either is missing, print the exact missing path and stop.
+
+3. Check authentication with `gcloud auth list` (use `gcloud.cmd` in PowerShell). Read only the `client_email` field from the service account JSON without displaying any other key data. Compare it with the active account. If they differ, activate the supplied key. Confirm the active account afterward.
+   Print: `STEP 2 DONE: Authenticated as <account>`
+
+4. Read the active project. If it is not `YOUR_PROJECT_ID`, set it. Read it again and require an exact match.
+   Print: `STEP 3 DONE: Active project is YOUR_PROJECT_ID`
+
+5. Compute the local SHA-256 hash before upload:
+   - PowerShell: `(Get-FileHash -LiteralPath "C:\YOUR\EXACT\PATH\TO\eval.jsonl" -Algorithm SHA256).Hash.ToLowerInvariant()`
+   - Bash/zsh: `sha256sum '/exact/path/eval.jsonl'`
+   Print exactly:
+   `LOCAL HASH BEFORE UPLOAD: <sha256>`
+   Then print `STEP 4 DONE: Local SHA-256 calculated`
+
+6. Enable Cloud Storage API:
+   `gcloud services enable storage.googleapis.com --project=YOUR_PROJECT_ID`
+   Confirm using an exact service-name check. In PowerShell, a clean confirmation command is:
+   `gcloud.cmd services list --enabled --project=YOUR_PROJECT_ID --filter="config.name=storage.googleapis.com" --format="value(config.name)"`
+   Require the result to equal `storage.googleapis.com` exactly.
+   Print: `STEP 5 DONE: Cloud Storage API is enabled`
+
+7. Check whether `gs://YOUR_BUCKET_NAME` exists by running a bucket describe command.
+   - If it exists, verify that it belongs to `YOUR_PROJECT_ID` and is in `asia-south1`, then reuse it.
+   - If the describe command returns Not Found, create it:
+     `gcloud storage buckets create gs://YOUR_BUCKET_NAME --project=YOUR_PROJECT_ID --location=asia-south1`
+   - Do not attempt creation first and use the resulting error as an existence check.
+   Print either:
+   `STEP 6 DONE: Bucket created in asia-south1`
+   or
+   `STEP 6 DONE: Existing bucket verified in asia-south1`
+
+8. Upload the file unchanged:
    `gcloud storage cp "C:\YOUR\EXACT\PATH\TO\eval.jsonl" gs://YOUR_BUCKET_NAME/eval.jsonl`
-6. First, disable Public Access Prevention on the bucket by running `gcloud storage buckets update gs://YOUR_BUCKET_NAME --no-public-access-prevention`. Then, make the bucket publicly readable and listable by granting `roles/storage.objectViewer` and `roles/storage.legacyBucketReader` to `allUsers`.
-7. Download the uploaded object back to a temp location and compute its SHA-256 hash, or use `gcloud storage objects describe` to check the object's stored hash/metadata. Print this clearly labeled as "UPLOADED FILE VERIFICATION".
-8. Confirm by running `gcloud storage buckets describe gs://YOUR_BUCKET_NAME` and `gcloud storage ls gs://YOUR_BUCKET_NAME`.
-9. Print a final summary: project confirmed, API enabled, bucket created/existing, file uploaded, LOCAL HASH BEFORE UPLOAD, UPLOADED FILE VERIFICATION, public access granted, and full describe/list output. Explicitly state whether the local hash and the uploaded file appear to match.
+   Confirm the object exists with:
+   `gcloud storage objects describe gs://YOUR_BUCKET_NAME/eval.jsonl`
+   Print: `STEP 7 DONE: eval.jsonl uploaded`
+
+9. Configure public access in this order:
+   `gcloud storage buckets update gs://YOUR_BUCKET_NAME --no-public-access-prevention`
+   `gcloud storage buckets add-iam-policy-binding gs://YOUR_BUCKET_NAME --member=allUsers --role=roles/storage.objectViewer`
+   `gcloud storage buckets add-iam-policy-binding gs://YOUR_BUCKET_NAME --member=allUsers --role=roles/storage.legacyBucketReader`
+   Retrieve the IAM policy as JSON and verify structurally that `allUsers` appears in both requested role bindings. Confirm bucket Public Access Prevention is not `enforced`.
+   Print: `STEP 8 DONE: Public read and list access granted`
+
+10. Verify uploaded content by downloading it to a unique temporary file, without overwriting the source file:
+    - PowerShell: use `$tempFile = Join-Path $env:TEMP ("eval-" + [guid]::NewGuid().ToString() + ".jsonl")`
+    - Download with `gcloud storage cp gs://YOUR_BUCKET_NAME/eval.jsonl <temp-file>`
+    - Compute the downloaded file's SHA-256 using the shell-native hash command.
+    - Delete only the temporary downloaded file after hashing.
+    Print exactly:
+    `UPLOADED FILE VERIFICATION: <sha256>`
+    Compare normalized lowercase hashes and print exactly one of:
+    `HASH MATCH: YES`
+    or
+    `HASH MATCH: NO`
+    If hashes do not match, stop and report verification failure.
+    Print: `STEP 9 DONE: Uploaded file matches local file`
+
+11. Run and print the complete output of both final commands:
+    `gcloud storage buckets describe gs://YOUR_BUCKET_NAME`
+    `gcloud storage ls gs://YOUR_BUCKET_NAME`
+    Require the listing to include `gs://YOUR_BUCKET_NAME/eval.jsonl`.
+    Print: `STEP 10 DONE: Final bucket and object checks succeeded`
+
+12. Print a concise final summary containing:
+    - Active authenticated account
+    - Confirmed project
+    - Cloud Storage API status
+    - Bucket name, location, and whether it was created or reused
+    - Uploaded object URI
+    - `LOCAL HASH BEFORE UPLOAD`
+    - `UPLOADED FILE VERIFICATION`
+    - `HASH MATCH: YES` or `NO`
+    - Public Access Prevention status
+    - Confirmation of both public IAM roles
+    - The full bucket describe output
+    - The full object list output
+
+Do not claim completion unless every verification succeeds. Do not expose secret key contents in any output.
+```
 ```
 
 ---
